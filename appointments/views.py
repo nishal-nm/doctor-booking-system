@@ -71,10 +71,10 @@ class BookAppointmentView(APIView):
         try:
             with transaction.atomic():
                 # lock the doctor's appointments for this date to prevent race conditions
-                Appointment.objects.select_for_update().filter(
+                list(Appointment.objects.select_for_update().filter(
                     doctor=doctor,
                     date=date
-                )
+                ))
 
                 if Appointment.objects.filter(
                     doctor=doctor,

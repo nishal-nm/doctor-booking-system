@@ -90,6 +90,15 @@ class LeaveStatusUpdateView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
+class LeaveListAdminView(APIView):
+    permission_classes = [IsSuperAdmin]
+
+    def get(self, request):
+        leaves = LeaveRequest.objects.select_related('doctor__user').all().order_by('-created_at')
+        serializer = LeaveRequestSerializer(leaves, many=True)
+        return Response(serializer.data)
+    
+
 class DoctorSlotView(APIView):
     permission_classes = [IsSuperAdmin]
 

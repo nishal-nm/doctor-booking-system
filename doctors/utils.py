@@ -25,11 +25,13 @@ def generate_slots(doctor, date):
     current = datetime.combine(date, doctor.start_time)
     end = datetime.combine(date, doctor.end_time)
     duration = timedelta(minutes=doctor.slot_duration)
+    total_count = 0
 
     while current + duration <= end:
-        if len(slots) >= doctor.consultations_per_day:
+        if total_count >= doctor.consultations_per_day:
             break
         slot_time = current.time()
+        total_count += 1
         if slot_time not in booked_times:
             slots.append({
                 'start_time': slot_time.strftime('%H:%M'),
