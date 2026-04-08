@@ -1,3 +1,4 @@
+from datetime import date as date_type
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -7,6 +8,7 @@ from .serializers import (
     LeaveRequestSerializer, LeaveStatusUpdateSerializer
 )
 from .permissions import IsSuperAdmin, IsDoctor
+from .utils import generate_slots
 
 
 class DoctorListCreateView(APIView):
@@ -86,3 +88,28 @@ class LeaveStatusUpdateView(APIView):
             serializer.save()
             return Response(LeaveRequestSerializer(leave).data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+class DoctorSlotView(APIView):
+    permission_classes = [IsSuperAdmin]
+
+    def get(self, request, pk):
+        doctor = Doctor.objects.filter(pk=pk).select_related('user').first()
+        if not doctor:
+            return Response({'detail': 'Doctor not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        date_str = request.query_params.get('date')
+        if not date_str:
+            return Response({'detail': 'date query parameter is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            slot_date = date_type.fromisoformat(date_str)
+        except ValueError:
+            return Response({'detail': 'Invalid date format. Use YYYY-MM-DD.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        slots = generate_slots(doctor, slot_date)
+        return Response({
+            'doctor': DoctorSerializer(doctor).data,
+            'date': date_str,
+            'slots': slots
+        })
