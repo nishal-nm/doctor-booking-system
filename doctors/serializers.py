@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from accounts.models import User
-from .models import Doctor
+from .models import Doctor, LeaveRequest
 
 
 class DoctorSerializer(serializers.ModelSerializer):
@@ -67,3 +67,23 @@ class DoctorUpdateSerializer(serializers.ModelSerializer):
         if start >= end:
             raise serializers.ValidationError("Start time must be before end time.")
         return data
+    
+
+class LeaveRequestSerializer(serializers.ModelSerializer):
+    doctor_name = serializers.CharField(source='doctor.user.full_name', read_only=True)
+
+    class Meta:
+        model = LeaveRequest
+        fields = ['id', 'doctor_name', 'date', 'reason', 'status', 'admin_remark', 'created_at']
+        read_only_fields = ['status', 'admin_remark', 'created_at']
+
+
+class LeaveStatusUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LeaveRequest
+        fields = ['status', 'admin_remark']
+
+    def validate_status(self, value):
+        if value not in ['approved', 'rejected']:
+            raise serializers.ValidationError("Status must be either approved or rejected.")
+        return value

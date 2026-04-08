@@ -1,9 +1,12 @@
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .models import Doctor
-from .serializers import DoctorSerializer, DoctorCreateSerializer, DoctorUpdateSerializer
-from .permissions import IsSuperAdmin
+from .models import Doctor, LeaveRequest
+from .serializers import (
+    DoctorSerializer, DoctorCreateSerializer, DoctorUpdateSerializer, 
+    LeaveRequestSerializer, LeaveStatusUpdateSerializer
+)
+from .permissions import IsSuperAdmin, IsDoctor
 
 
 class DoctorListCreateView(APIView):
@@ -47,3 +50,39 @@ class DoctorDetailView(APIView):
             return Response({'detail': 'Doctor not found.'}, status=status.HTTP_404_NOT_FOUND)
         doctor.user.delete()  # deletes user and doctor profile via cascade
         return Response({'detail': 'Doctor deleted.'}, status=status.HTTP_200_OK)
+    
+
+class LeaveRequestView(APIView):
+    permission_classes = [IsDoctor]
+
+    def get(self, request):
+        leaves = LeaveRequest.objects.filter(doctor=request.user.doctor_profile)
+        serializer = LeaveRequestSerializer(leaves, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer = LeaveRequestSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(doctor=request.user.doctor_profile)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class LeaveStatusUpdateView(APIView):
+    permission_classes = [IsSuperAdmin]
+
+    def get_object(self, pk):
+        try:
+            return LeaveRequest.objects.get(pk=pk)
+        except LeaveRequest.DoesNotExist:
+            return None
+
+    def put(self, request, pk):
+        leave = self.get_object(pk)
+        if not leave:
+            return Response({'detail': 'Leave request not found.'}, status=status.HTTP_404_NOT_FOUND)
+        serializer = LeaveStatusUpdateSerializer(leave, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(LeaveRequestSerializer(leave).data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
