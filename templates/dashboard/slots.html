@@ -1,0 +1,47 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}View Slots{% endblock %}
+{% block content %}
+<div class="card">
+    <h2 style="margin-bottom:16px;">View Doctor Slots</h2>
+    <form method="get" style="display:flex; gap:16px; align-items:flex-end; margin-bottom:24px;">
+        <div class="form-group" style="margin:0; flex:1;">
+            <label>Doctor</label>
+            <select name="doctor_id">
+                <option value="">Select Doctor</option>
+                {% for doctor in doctors %}
+                <option value="{{ doctor.pk }}" {% if selected_doctor and selected_doctor.pk == doctor.pk %}selected{% endif %}>
+                    Dr. {{ doctor.user.full_name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group" style="margin:0; flex:1;">
+            <label>Date</label>
+            <input type="date" name="date" value="{{ selected_date|default:'' }}">
+        </div>
+        <button type="submit" class="btn btn-primary">View Slots</button>
+    </form>
+
+    {% if selected_doctor and selected_date %}
+        <h3 style="margin-bottom:12px;">
+            Slots for Dr. {{ selected_doctor.user.full_name }} on {{ selected_date }}
+        </h3>
+        {% if slots %}
+        <table>
+            <thead><tr><th>#</th><th>Start Time</th><th>End Time</th></tr></thead>
+            <tbody>
+            {% for slot in slots %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ slot.start_time }}</td>
+                    <td>{{ slot.end_time }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+            <p style="color:#888;">No slots available for this date.</p>
+        {% endif %}
+    {% endif %}
+</div>
+{% endblock %}

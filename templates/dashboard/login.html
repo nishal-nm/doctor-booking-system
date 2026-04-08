@@ -1,0 +1,30 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Admin Login{% endblock %}
+
+{% block full_page %}
+<div style="display:flex; justify-content:center; align-items:center; height:100vh;">
+    <div class="card" style="width:360px;">
+        <h2 style="margin-bottom:20px; font-size:20px;">Admin Login</h2>
+        {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+            <li class="{{ message.tags }}">{{ message }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" name="email" required>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" name="password" required>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%;">Login</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

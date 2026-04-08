@@ -1,0 +1,17 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}Dashboard Home{% endblock %}
+{% block content %}
+<div class="card">
+    <h2 style="margin-bottom:20px;">Welcome, {{ request.user.full_name }}</h2>
+    <div style="display:flex; gap:20px;">
+        <div class="card" style="flex:1; text-align:center;">
+            <h3 style="font-size:32px; color:#2980b9;">{{ total_doctors }}</h3>
+            <p>Total Doctors</p>
+        </div>
+        <div class="card" style="flex:1; text-align:center;">
+            <h3 style="font-size:32px; color:#e67e22;">{{ pending_leaves }}</h3>
+            <p>Pending Leave Requests</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

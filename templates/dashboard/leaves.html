@@ -1,0 +1,40 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}Leave Requests{% endblock %}
+{% block content %}
+<div class="card">
+    <h2 style="margin-bottom:16px;">Leave Requests</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Doctor</th><th>Date</th><th>Reason</th>
+                <th>Status</th><th>Remark</th><th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for leave in leaves %}
+            <tr>
+                <td>Dr. {{ leave.doctor.user.full_name }}</td>
+                <td>{{ leave.date }}</td>
+                <td>{{ leave.reason }}</td>
+                <td>{{ leave.status|capfirst }}</td>
+                <td>{{ leave.admin_remark|default:"-" }}</td>
+                <td>
+                    {% if leave.status == 'pending' %}
+                    <form method="post" action="{% url 'dashboard_leave_update' leave.pk %}">
+                        {% csrf_token %}
+                        <input type="text" name="admin_remark" placeholder="Remark" style="width:140px; display:inline; margin-right:6px;">
+                        <button name="status" value="approved" class="btn btn-success">Approve</button>
+                        <button name="status" value="rejected" class="btn btn-danger">Reject</button>
+                    </form>
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="6" style="text-align:center;">No leave requests found.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

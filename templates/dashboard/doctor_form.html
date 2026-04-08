@@ -1,0 +1,56 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}{{ action }} Doctor{% endblock %}
+{% block content %}
+<div class="card" style="max-width:600px;">
+    <h2 style="margin-bottom:20px;">{{ action }} Doctor</h2>
+    <form method="post">
+        {% csrf_token %}
+        {% if action == 'Create' %}
+        <div class="form-group">
+            <label>Email</label>
+            <input type="email" name="email" required>
+        </div>
+        <div class="form-group">
+            <label>Full Name</label>
+            <input type="text" name="full_name" required>
+        </div>
+        <div class="form-group">
+            <label>Password</label>
+            <input type="password" name="password" required>
+        </div>
+        {% endif %}
+        <div class="form-group">
+            <label>Specialization</label>
+            <input type="text" name="specialization" value="{{ doctor.specialization }}" required>
+        </div>
+        <div class="form-group">
+            <label>Working Days</label><br>
+            {% for day in days %}
+            <label style="font-weight:normal; display:inline-flex; align-items:center; gap:4px; margin-right:10px;">
+                <input type="checkbox" name="working_days" value="{{ day }}"
+                    {% if doctor and day in doctor.working_days %}checked{% endif %}>
+                {{ day|capfirst }}
+            </label>
+            {% endfor %}
+        </div>
+        <div class="form-group">
+            <label>Start Time</label>
+            <input type="time" name="start_time" value="{{ doctor.start_time }}" required>
+        </div>
+        <div class="form-group">
+            <label>End Time</label>
+            <input type="time" name="end_time" value="{{ doctor.end_time }}" required>
+        </div>
+        <div class="form-group">
+            <label>Slot Duration (minutes)</label>
+            <input type="number" name="slot_duration" value="{{ doctor.slot_duration }}" min="1" required>
+        </div>
+        <div class="form-group">
+            <label>Consultations Per Day</label>
+            <input type="number" name="consultations_per_day" value="{{ doctor.consultations_per_day }}" min="1" required>
+        </div>
+        <button type="submit" class="btn btn-primary">{{ action }} Doctor</button>
+        <a href="{% url 'dashboard_doctors' %}" class="btn" style="background:#95a5a6; color:white; margin-left:8px;">Cancel</a>
+    </form>
+</div>
+{% endblock %}

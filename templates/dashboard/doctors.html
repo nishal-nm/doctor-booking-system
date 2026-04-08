@@ -1,0 +1,39 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}Doctors{% endblock %}
+{% block content %}
+<div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <h2>Doctors</h2>
+        <a href="{% url 'dashboard_doctor_create' %}" class="btn btn-primary">+ Add Doctor</a>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th><th>Email</th><th>Specialization</th>
+                <th>Working Days</th><th>Start</th><th>End</th><th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for doctor in doctors %}
+            <tr>
+                <td>Dr. {{ doctor.user.full_name }}</td>
+                <td>{{ doctor.user.email }}</td>
+                <td>{{ doctor.specialization }}</td>
+                <td>{{ doctor.working_days|join:", " }}</td>
+                <td>{{ doctor.start_time }}</td>
+                <td>{{ doctor.end_time }}</td>
+                <td>
+                    <a href="{% url 'dashboard_doctor_update' doctor.pk %}" class="btn btn-warning">Edit</a>
+                    <form method="post" action="{% url 'dashboard_doctor_delete' doctor.pk %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger" onclick="return confirm('Delete this doctor?')">Delete</button>
+                    </form>
+                </td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="7" style="text-align:center;">No doctors found.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
