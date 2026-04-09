@@ -43,6 +43,7 @@ class DoctorDetailView(APIView):
         serializer = DoctorUpdateSerializer(doctor, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
+            doctor.refresh_from_db()
             return Response(DoctorSerializer(doctor).data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
