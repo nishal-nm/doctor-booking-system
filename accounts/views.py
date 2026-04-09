@@ -48,4 +48,12 @@ class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        return Response({'detail': 'Logged out successfully.'}, status=status.HTTP_200_OK)
+        try:
+            refresh_token = request.data.get('refresh')
+            if not refresh_token:
+                return Response({'detail': 'Refresh token is required.'}, status=status.HTTP_400_BAD_REQUEST)
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            return Response({'detail': 'Logged out successfully.'}, status=status.HTTP_200_OK)
+        except Exception:
+            return Response({'detail': 'Invalid token.'}, status=status.HTTP_400_BAD_REQUEST)

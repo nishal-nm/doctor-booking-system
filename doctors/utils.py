@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from appointments.models import Appointment
 
 
-def generate_slots(doctor, date):
+def generate_slots(doctor, date, for_admin=False):
     day_name = date.strftime('%A').lower()
     if day_name not in doctor.working_days:
         return []
@@ -32,7 +32,14 @@ def generate_slots(doctor, date):
             break
         slot_time = current.time()
         total_count += 1
-        if slot_time not in booked_times:
+        is_booked = slot_time in booked_times
+        if for_admin:
+            slots.append({
+                'start_time': slot_time.strftime('%H:%M'),
+                'end_time': (current + duration).time().strftime('%H:%M'),
+                'status': 'booked' if is_booked else 'available'
+            })
+        elif not is_booked:
             slots.append({
                 'start_time': slot_time.strftime('%H:%M'),
                 'end_time': (current + duration).time().strftime('%H:%M'),

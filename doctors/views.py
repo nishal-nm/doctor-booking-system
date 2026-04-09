@@ -86,6 +86,7 @@ class LeaveStatusUpdateView(APIView):
         serializer = LeaveStatusUpdateSerializer(leave, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
+            leave.refresh_from_db()
             return Response(LeaveRequestSerializer(leave).data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
@@ -116,7 +117,7 @@ class DoctorSlotView(APIView):
         except ValueError:
             return Response({'detail': 'Invalid date format. Use YYYY-MM-DD.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        slots = generate_slots(doctor, slot_date)
+        slots = generate_slots(doctor, slot_date, for_admin=True)
         return Response({
             'doctor': DoctorSerializer(doctor).data,
             'date': date_str,

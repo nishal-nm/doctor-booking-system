@@ -1,3 +1,4 @@
+from django.db import transaction
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
@@ -5,6 +6,7 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.contrib import messages
 from datetime import date
+from functools import wraps
 
 from accounts.models import User
 from .models import Doctor, LeaveRequest
@@ -14,6 +16,7 @@ DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sun
 
 
 def superadmin_required(view_func):
+    @wraps(view_func)
     def wrapper(request, *args, **kwargs):
         if not request.user.is_authenticated or request.user.role != 'superadmin':
             return redirect('dashboard_login')
@@ -72,21 +75,22 @@ class DashboardDoctorCreateView(View):
 
     def post(self, request):
         try:
-            user = User.objects.create_user(
-                email=request.POST['email'],
-                full_name=request.POST['full_name'],
-                password=request.POST['password'],
-                role='doctor'
-            )
-            Doctor.objects.create(
-                user=user,
-                specialization=request.POST['specialization'],
-                working_days=request.POST.getlist('working_days'),
-                start_time=request.POST['start_time'],
-                end_time=request.POST['end_time'],
-                slot_duration=int(request.POST['slot_duration']),
-                consultations_per_day=int(request.POST['consultations_per_day'])
-            )
+            with transaction.atomic():
+                user = User.objects.create_user(
+                    email=request.POST['email'],
+                    full_name=request.POST['full_name'],
+                    password=request.POST['password'],
+                    role='doctor'
+                )
+                Doctor.objects.create(
+                    user=user,
+                    specialization=request.POST['specialization'],
+                    working_days=request.POST.getlist('working_days'),
+                    start_time=request.POST['start_time'],
+                    end_time=request.POST['end_time'],
+                    slot_duration=int(request.POST['slot_duration']),
+                    consultations_per_day=int(request.POST['consultations_per_day'])
+                )
             messages.success(request, 'Doctor created successfully.')
             return redirect('dashboard_doctors')
         except Exception as e:
@@ -173,7 +177,7 @@ class DashboardSlotView(View):
             try:
                 selected_doctor = Doctor.objects.get(pk=doctor_id)
                 selected_date = date.fromisoformat(date_str)
-                slots = generate_slots(selected_doctor, selected_date)
+                slots = generate_slots(selected_doctor, selected_date, for_admin=True)
             except (Doctor.DoesNotExist, ValueError):
                 messages.error(request, 'Invalid doctor or date.')
 

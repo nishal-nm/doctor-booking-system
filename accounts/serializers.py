@@ -11,8 +11,8 @@ class RegisterSerializer(serializers.ModelSerializer):
         fields = ['email', 'full_name', 'password', 'role']
 
     def validate_role(self, value):
-        if value == 'superadmin':
-            raise serializers.ValidationError("Cannot register as superadmin.")
+        if value in ['superadmin', 'doctor']:
+            raise serializers.ValidationError("You can only register as a customer.")
         return value
 
     def create(self, validated_data):

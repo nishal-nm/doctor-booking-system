@@ -28,13 +28,14 @@
         </h3>
         {% if slots %}
         <table>
-            <thead><tr><th>#</th><th>Start Time</th><th>End Time</th></tr></thead>
+            <thead><tr><th>#</th><th>Start Time</th><th>End Time</th><th>Status</th></tr></thead>
             <tbody>
             {% for slot in slots %}
                 <tr>
                     <td>{{ forloop.counter }}</td>
                     <td>{{ slot.start_time }}</td>
                     <td>{{ slot.end_time }}</td>
+                    <td>{{ slot.status|capfirst }}</td>
                 </tr>
             {% endfor %}
             </tbody>

@@ -1,4 +1,5 @@
-from django.db import transaction
+from django.db import transaction, IntegrityError
+from django.db.models import Q
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -70,19 +71,21 @@ class BookAppointmentView(APIView):
 
         try:
             with transaction.atomic():
-                # lock the doctor's appointments for this date to prevent race conditions
                 list(Appointment.objects.select_for_update().filter(
                     doctor=doctor,
                     date=date
                 ))
 
-                if Appointment.objects.filter(
+                overlapping = Appointment.objects.filter(
                     doctor=doctor,
-                    date=date,
-                    start_time=start_time
-                ).exists():
+                    date=date
+                ).filter(
+                    Q(start_time__lt=end_time) & Q(end_time__gt=start_time)
+                )
+
+                if overlapping.exists():
                     return Response(
-                        {'detail': 'This slot has just been booked. Please choose another.'},
+                        {'detail': 'This slot overlaps with an existing appointment.'},
                         status=status.HTTP_409_CONFLICT
                     )
 
@@ -94,10 +97,10 @@ class BookAppointmentView(APIView):
                     end_time=end_time
                 )
 
-        except Exception:
+        except IntegrityError:
             return Response(
-                {'detail': 'Booking failed. Please try again.'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {'detail': 'This slot has just been booked. Please choose another.'},
+                status=status.HTTP_409_CONFLICT
             )
 
         return Response(AppointmentSerializer(appointment).data, status=status.HTTP_201_CREATED)
