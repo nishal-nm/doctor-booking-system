@@ -1,3 +1,4 @@
+from django.db import transaction
 from rest_framework import serializers
 from accounts.models import User
 from .models import Doctor, LeaveRequest
@@ -35,22 +36,23 @@ class DoctorCreateSerializer(serializers.Serializer):
         return data
 
     def create(self, validated_data):
-        user = User.objects.create_user(
-            email=validated_data['email'],
-            full_name=validated_data['full_name'],
-            password=validated_data['password'],
-            role='doctor'
-        )
-        doctor = Doctor.objects.create(
-            user=user,
-            specialization=validated_data['specialization'],
-            working_days=validated_data['working_days'],
-            start_time=validated_data['start_time'],
-            end_time=validated_data['end_time'],
-            slot_duration=validated_data['slot_duration'],
-            consultations_per_day=validated_data['consultations_per_day']
-        )
-        return doctor
+        with transaction.atomic():
+            user = User.objects.create_user(
+                email=validated_data['email'],
+                full_name=validated_data['full_name'],
+                password=validated_data['password'],
+                role='doctor'
+            )
+            doctor = Doctor.objects.create(
+                user=user,
+                specialization=validated_data['specialization'],
+                working_days=validated_data['working_days'],
+                start_time=validated_data['start_time'],
+                end_time=validated_data['end_time'],
+                slot_duration=validated_data['slot_duration'],
+                consultations_per_day=validated_data['consultations_per_day']
+            )
+            return doctor
 
 
 class DoctorUpdateSerializer(serializers.ModelSerializer):
