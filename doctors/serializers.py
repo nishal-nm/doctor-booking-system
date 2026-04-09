@@ -4,12 +4,10 @@ from .models import Doctor, LeaveRequest
 
 
 class DoctorSerializer(serializers.ModelSerializer):
-    # Include doctor basic details along with user info
     full_name = serializers.CharField(source='user.full_name', read_only=True)
     email = serializers.EmailField(source='user.email', read_only=True)
 
     class Meta:
-        # Serialize doctor data for response
         model = Doctor
         fields = [
             'id', 'full_name', 'email', 'specialization',
@@ -19,7 +17,6 @@ class DoctorSerializer(serializers.ModelSerializer):
 
 
 class DoctorCreateSerializer(serializers.Serializer):
-    # Input fields required to create a doctor
     email = serializers.EmailField()
     full_name = serializers.CharField()
     password = serializers.CharField(write_only=True, min_length=6)
@@ -32,13 +29,11 @@ class DoctorCreateSerializer(serializers.Serializer):
     slot_duration = serializers.IntegerField(min_value=1)
     consultations_per_day = serializers.IntegerField(min_value=1)
 
-    # Validate working time range
     def validate(self, data):
         if data['start_time'] >= data['end_time']:
             raise serializers.ValidationError("Start time must be before end time.")
         return data
 
-    # Create user and doctor profile together
     def create(self, validated_data):
         user = User.objects.create_user(
             email=validated_data['email'],
@@ -60,28 +55,24 @@ class DoctorCreateSerializer(serializers.Serializer):
 
 class DoctorUpdateSerializer(serializers.ModelSerializer):
     class Meta:
-        # Fields allowed to update for a doctor
         model = Doctor
         fields = [
             'specialization', 'working_days', 'start_time',
             'end_time', 'slot_duration', 'consultations_per_day'
         ]
 
-    # Validate updated time range
     def validate(self, data):
         start = data.get('start_time', self.instance.start_time)
         end = data.get('end_time', self.instance.end_time)
         if start >= end:
             raise serializers.ValidationError("Start time must be before end time.")
         return data
-    
+
 
 class LeaveRequestSerializer(serializers.ModelSerializer):
-    # Include doctor name in leave response
     doctor_name = serializers.CharField(source='doctor.user.full_name', read_only=True)
 
     class Meta:
-        # Serialize leave request details
         model = LeaveRequest
         fields = ['id', 'doctor_name', 'date', 'reason', 'status', 'admin_remark', 'created_at']
         read_only_fields = ['status', 'admin_remark', 'created_at']
@@ -89,11 +80,9 @@ class LeaveRequestSerializer(serializers.ModelSerializer):
 
 class LeaveStatusUpdateSerializer(serializers.ModelSerializer):
     class Meta:
-        # Fields used by admin to update leave status
         model = LeaveRequest
         fields = ['status', 'admin_remark']
 
-    # Allow only approved or rejected status
     def validate_status(self, value):
         if value not in ['approved', 'rejected']:
             raise serializers.ValidationError("Status must be either approved or rejected.")

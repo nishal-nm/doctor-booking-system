@@ -1,3 +1,4 @@
+from datetime import date
 from django.db import transaction, IntegrityError
 from django.db.models import Q
 from rest_framework import status
@@ -14,7 +15,6 @@ from .serializers import AppointmentSerializer, BookAppointmentSerializer
 class DoctorListView(APIView):
     permission_classes = [IsCustomer]
 
-    # Get list of all doctors for customers
     def get(self, request):
         doctors = Doctor.objects.select_related('user').all()
         serializer = DoctorSerializer(doctors, many=True)
@@ -24,7 +24,6 @@ class DoctorListView(APIView):
 class AvailableSlotView(APIView):
     permission_classes = [IsCustomer]
 
-    # Get available slots for a specific doctor on a given date
     def get(self, request, pk):
         doctor = Doctor.objects.filter(pk=pk).select_related('user').first()
         if not doctor:
@@ -35,15 +34,11 @@ class AvailableSlotView(APIView):
             return Response({'detail': 'date query parameter is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            # Convert input date string to date object
-            from datetime import date
             slot_date = date.fromisoformat(date_str)
         except ValueError:
             return Response({'detail': 'Invalid date format. Use YYYY-MM-DD.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Generate slots dynamically based on doctor schedule
         slots = generate_slots(doctor, slot_date)
-
         return Response({
             'doctor': DoctorSerializer(doctor).data,
             'date': date_str,
@@ -54,39 +49,34 @@ class AvailableSlotView(APIView):
 class BookAppointmentView(APIView):
     permission_classes = [IsCustomer]
 
-    # Book an appointment for a selected doctor and time slot
     def post(self, request):
         serializer = BookAppointmentSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         data = serializer.validated_data
+
+        if data['date'] < date.today():
+            return Response({'detail': 'Cannot book an appointment for a past date.'}, status=status.HTTP_400_BAD_REQUEST)
+
         doctor = data['doctor']
-        date = data['date']
+        appt_date = data['date']
         start_time = data['start_time']
         end_time = data['end_time']
 
-        # Check if the requested slot is still available
-        available_slots = generate_slots(doctor, date)
+        available_slots = generate_slots(doctor, appt_date)
         requested = start_time.strftime('%H:%M')
         if not any(slot['start_time'] == requested for slot in available_slots):
-            return Response(
-                {'detail': 'This slot is not available.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({'detail': 'This slot is not available.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            # Lock rows and handle booking safely to avoid conflicts
             with transaction.atomic():
-                list(Appointment.objects.select_for_update().filter(
-                    doctor=doctor,
-                    date=date
-                ))
+                # lock existing rows for this doctor+date to prevent concurrent bookings
+                list(Appointment.objects.select_for_update().filter(doctor=doctor, date=appt_date))
 
-                # Check for overlapping appointments
                 overlapping = Appointment.objects.filter(
                     doctor=doctor,
-                    date=date
+                    date=appt_date
                 ).filter(
                     Q(start_time__lt=end_time) & Q(end_time__gt=start_time)
                 )
@@ -97,19 +87,17 @@ class BookAppointmentView(APIView):
                         status=status.HTTP_409_CONFLICT
                     )
 
-                # Create the appointment
                 appointment = Appointment.objects.create(
                     doctor=doctor,
                     customer=request.user,
-                    date=date,
+                    date=appt_date,
                     start_time=start_time,
                     end_time=end_time
                 )
 
         except IntegrityError:
-            # Handle case where slot was booked at the same time by another request
             return Response(
-                {'detail': 'This slot has just been booked. Please choose another.'},
+                {'detail': 'This slot was just taken. Please choose another.'},
                 status=status.HTTP_409_CONFLICT
             )
 
@@ -119,7 +107,6 @@ class BookAppointmentView(APIView):
 class CustomerAppointmentListView(APIView):
     permission_classes = [IsCustomer]
 
-    # Get all appointments booked by the logged-in customer
     def get(self, request):
         appointments = Appointment.objects.filter(
             customer=request.user
@@ -131,7 +118,6 @@ class CustomerAppointmentListView(APIView):
 class DoctorAppointmentListView(APIView):
     permission_classes = [IsDoctor]
 
-    # Get all appointments assigned to the logged-in doctor
     def get(self, request):
         appointments = Appointment.objects.filter(
             doctor=request.user.doctor_profile

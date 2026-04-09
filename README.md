@@ -160,7 +160,7 @@ Authorization: Bearer <access_token>
 POST /api/appointments/book/
 {
     "doctor_id": 1,
-    "date": "2025-04-15",
+    "date": "2026-05-10",
     "start_time": "09:00"
 }
 ```

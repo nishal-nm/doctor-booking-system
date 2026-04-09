@@ -1,13 +1,11 @@
 from django.db import transaction
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.decorators import login_required
-from django.utils.decorators import method_decorator
 from django.views import View
 from django.contrib import messages
+from django.shortcuts import render, redirect, get_object_or_404
+from django.utils.decorators import method_decorator
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
 from datetime import date
-from functools import wraps
-
 from accounts.models import User
 from .models import Doctor, LeaveRequest
 from .utils import generate_slots
@@ -15,9 +13,7 @@ from .utils import generate_slots
 DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
 
 
-# Restrict access only to superadmin users
 def superadmin_required(view_func):
-    @wraps(view_func)
     def wrapper(request, *args, **kwargs):
         if not request.user.is_authenticated or request.user.role != 'superadmin':
             return redirect('dashboard_login')
@@ -27,13 +23,11 @@ def superadmin_required(view_func):
 
 class DashboardLoginView(View):
 
-    # Show login page
     def get(self, request):
         if request.user.is_authenticated and request.user.role == 'superadmin':
             return redirect('dashboard_home')
         return render(request, 'dashboard/login.html')
 
-    # Handle login for superadmin
     def post(self, request):
         email = request.POST.get('email')
         password = request.POST.get('password')
@@ -47,7 +41,6 @@ class DashboardLoginView(View):
 
 class DashboardLogoutView(View):
 
-    # Logout user and redirect to login
     def get(self, request):
         logout(request)
         return redirect('dashboard_login')
@@ -56,7 +49,6 @@ class DashboardLogoutView(View):
 @method_decorator([login_required(login_url='dashboard_login'), superadmin_required], name='dispatch')
 class DashboardHomeView(View):
 
-    # Show dashboard summary data
     def get(self, request):
         total_doctors = Doctor.objects.count()
         pending_leaves = LeaveRequest.objects.filter(status='pending').count()
@@ -69,7 +61,6 @@ class DashboardHomeView(View):
 @method_decorator([login_required(login_url='dashboard_login'), superadmin_required], name='dispatch')
 class DashboardDoctorListView(View):
 
-    # Show all doctors in dashboard
     def get(self, request):
         doctors = Doctor.objects.select_related('user').all()
         return render(request, 'dashboard/doctors.html', {'doctors': doctors})
@@ -78,14 +69,12 @@ class DashboardDoctorListView(View):
 @method_decorator([login_required(login_url='dashboard_login'), superadmin_required], name='dispatch')
 class DashboardDoctorCreateView(View):
 
-    # Show doctor creation form
     def get(self, request):
         return render(request, 'dashboard/doctor_form.html', {
             'action': 'Create',
             'days': DAYS
         })
 
-    # Create doctor and linked user
     def post(self, request):
         try:
             with transaction.atomic():
@@ -117,7 +106,6 @@ class DashboardDoctorCreateView(View):
 @method_decorator([login_required(login_url='dashboard_login'), superadmin_required], name='dispatch')
 class DashboardDoctorUpdateView(View):
 
-    # Show update form for doctor
     def get(self, request, pk):
         doctor = get_object_or_404(Doctor, pk=pk)
         return render(request, 'dashboard/doctor_form.html', {
@@ -126,7 +114,6 @@ class DashboardDoctorUpdateView(View):
             'days': DAYS
         })
 
-    # Update doctor details
     def post(self, request, pk):
         doctor = get_object_or_404(Doctor, pk=pk)
         try:
@@ -151,7 +138,6 @@ class DashboardDoctorUpdateView(View):
 @method_decorator([login_required(login_url='dashboard_login'), superadmin_required], name='dispatch')
 class DashboardDoctorDeleteView(View):
 
-    # Delete doctor and linked user
     def post(self, request, pk):
         doctor = get_object_or_404(Doctor, pk=pk)
         doctor.user.delete()
@@ -162,7 +148,6 @@ class DashboardDoctorDeleteView(View):
 @method_decorator([login_required(login_url='dashboard_login'), superadmin_required], name='dispatch')
 class DashboardLeaveListView(View):
 
-    # Show all leave requests
     def get(self, request):
         leaves = LeaveRequest.objects.select_related('doctor__user').all().order_by('-created_at')
         return render(request, 'dashboard/leaves.html', {'leaves': leaves})
@@ -171,7 +156,6 @@ class DashboardLeaveListView(View):
 @method_decorator([login_required(login_url='dashboard_login'), superadmin_required], name='dispatch')
 class DashboardLeaveUpdateView(View):
 
-    # Approve or reject leave request
     def post(self, request, pk):
         leave = get_object_or_404(LeaveRequest, pk=pk)
         new_status = request.POST.get('status')
@@ -187,7 +171,6 @@ class DashboardLeaveUpdateView(View):
 @method_decorator([login_required(login_url='dashboard_login'), superadmin_required], name='dispatch')
 class DashboardSlotView(View):
 
-    # Show slots for selected doctor and date
     def get(self, request):
         doctors = Doctor.objects.select_related('user').all()
         slots = []
