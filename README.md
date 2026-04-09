@@ -61,7 +61,8 @@ python manage.py migrate
 python manage.py createsuperuser
 ```
 
-Enter email, full name, and password when prompted. Role will be set to `superadmin` automatically.
+Enter email, full name, and password when prompted.  
+The created superuser will have the role `superadmin` by default.
 
 ### 7. Run the development server
 
@@ -102,7 +103,7 @@ Login with your superadmin credentials. From the dashboard you can:
 
 | Method | Endpoint | Access | Description |
 |--------|----------|--------|-------------|
-| POST | `/api/auth/register/` | Public | Register as doctor or customer |
+| POST | `/api/auth/register/` | Public | Register as customer |
 | POST | `/api/auth/login/` | Public | Login and receive JWT tokens |
 | POST | `/api/auth/logout/` | Authenticated | Logout |
 | POST | `/api/auth/token/refresh/` | Authenticated | Refresh access token |
@@ -115,7 +116,7 @@ Login with your superadmin credentials. From the dashboard you can:
 | POST | `/api/doctors/` | Superadmin | Create a doctor |
 | PUT | `/api/doctors/<id>/` | Superadmin | Update a doctor |
 | DELETE | `/api/doctors/<id>/` | Superadmin | Delete a doctor |
-| GET | `/api/doctors/<id>/slots/?date=YYYY-MM-DD` | Superadmin | View available slots for a doctor |
+| GET | `/api/doctors/<id>/slots/?date=YYYY-MM-DD` | Superadmin | View dynamically generated slots for a doctor |
 | GET | `/api/doctors/leaves/all/` | Superadmin | List all leave requests |
 | PUT | `/api/doctors/leaves/<id>/status/` | Superadmin | Approve or reject a leave request |
 
@@ -169,8 +170,13 @@ POST /api/appointments/book/
 ## Key Features
 
 - Slots are generated dynamically and never stored in the database
+- Slots are generated based on:
+  - Doctor working days
+  - Start and end time
+  - Slot duration
+  - Maximum consultations per day
 - Approved leave dates are automatically excluded from available slots
 - Already booked slots are excluded in real time
-- Double booking is prevented at the database level using `unique_together`
+- Double booking is prevented using both database constraints (`unique_together`) and runtime validation
 - Race conditions are handled using `select_for_update` inside `transaction.atomic`
 - Superadmin dashboard built entirely with Django templates — no Django Admin used

@@ -14,11 +14,13 @@ from .utils import generate_slots
 class DoctorListCreateView(APIView):
     permission_classes = [IsSuperAdmin]
 
+    # Get all doctors (admin view)
     def get(self, request):
         doctors = Doctor.objects.select_related('user').all()
         serializer = DoctorSerializer(doctors, many=True)
         return Response(serializer.data)
 
+    # Create a new doctor
     def post(self, request):
         serializer = DoctorCreateSerializer(data=request.data)
         if serializer.is_valid():
@@ -30,12 +32,14 @@ class DoctorListCreateView(APIView):
 class DoctorDetailView(APIView):
     permission_classes = [IsSuperAdmin]
 
+    # Helper to get doctor by id
     def get_object(self, pk):
         try:
             return Doctor.objects.select_related('user').get(pk=pk)
         except Doctor.DoesNotExist:
             return None
 
+    # Update doctor details
     def put(self, request, pk):
         doctor = self.get_object(pk)
         if not doctor:
@@ -46,6 +50,7 @@ class DoctorDetailView(APIView):
             return Response(DoctorSerializer(doctor).data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    # Delete doctor
     def delete(self, request, pk):
         doctor = self.get_object(pk)
         if not doctor:
@@ -57,11 +62,13 @@ class DoctorDetailView(APIView):
 class LeaveRequestView(APIView):
     permission_classes = [IsDoctor]
 
+    # Get all leave requests of the logged-in doctor
     def get(self, request):
         leaves = LeaveRequest.objects.filter(doctor=request.user.doctor_profile)
         serializer = LeaveRequestSerializer(leaves, many=True)
         return Response(serializer.data)
 
+    # Create a new leave request
     def post(self, request):
         serializer = LeaveRequestSerializer(data=request.data)
         if serializer.is_valid():
@@ -73,12 +80,14 @@ class LeaveRequestView(APIView):
 class LeaveStatusUpdateView(APIView):
     permission_classes = [IsSuperAdmin]
 
+    # Helper to get leave request by id
     def get_object(self, pk):
         try:
             return LeaveRequest.objects.get(pk=pk)
         except LeaveRequest.DoesNotExist:
             return None
 
+    # Approve or reject a leave request
     def put(self, request, pk):
         leave = self.get_object(pk)
         if not leave:
@@ -94,6 +103,7 @@ class LeaveStatusUpdateView(APIView):
 class LeaveListAdminView(APIView):
     permission_classes = [IsSuperAdmin]
 
+    # Get all leave requests (admin view)
     def get(self, request):
         leaves = LeaveRequest.objects.select_related('doctor__user').all().order_by('-created_at')
         serializer = LeaveRequestSerializer(leaves, many=True)
@@ -103,6 +113,7 @@ class LeaveListAdminView(APIView):
 class DoctorSlotView(APIView):
     permission_classes = [IsSuperAdmin]
 
+    # Get all slots for a doctor on a specific date (admin view)
     def get(self, request, pk):
         doctor = Doctor.objects.filter(pk=pk).select_related('user').first()
         if not doctor:
@@ -113,11 +124,14 @@ class DoctorSlotView(APIView):
             return Response({'detail': 'date query parameter is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
+            # Convert date string to date object
             slot_date = date_type.fromisoformat(date_str)
         except ValueError:
             return Response({'detail': 'Invalid date format. Use YYYY-MM-DD.'}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Generate slots including booked/available status
         slots = generate_slots(doctor, slot_date, for_admin=True)
+
         return Response({
             'doctor': DoctorSerializer(doctor).data,
             'date': date_str,

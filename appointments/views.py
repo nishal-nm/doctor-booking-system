@@ -14,6 +14,7 @@ from .serializers import AppointmentSerializer, BookAppointmentSerializer
 class DoctorListView(APIView):
     permission_classes = [IsCustomer]
 
+    # Get list of all doctors for customers
     def get(self, request):
         doctors = Doctor.objects.select_related('user').all()
         serializer = DoctorSerializer(doctors, many=True)
@@ -23,6 +24,7 @@ class DoctorListView(APIView):
 class AvailableSlotView(APIView):
     permission_classes = [IsCustomer]
 
+    # Get available slots for a specific doctor on a given date
     def get(self, request, pk):
         doctor = Doctor.objects.filter(pk=pk).select_related('user').first()
         if not doctor:
@@ -33,12 +35,15 @@ class AvailableSlotView(APIView):
             return Response({'detail': 'date query parameter is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
+            # Convert input date string to date object
             from datetime import date
             slot_date = date.fromisoformat(date_str)
         except ValueError:
             return Response({'detail': 'Invalid date format. Use YYYY-MM-DD.'}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Generate slots dynamically based on doctor schedule
         slots = generate_slots(doctor, slot_date)
+
         return Response({
             'doctor': DoctorSerializer(doctor).data,
             'date': date_str,
@@ -49,6 +54,7 @@ class AvailableSlotView(APIView):
 class BookAppointmentView(APIView):
     permission_classes = [IsCustomer]
 
+    # Book an appointment for a selected doctor and time slot
     def post(self, request):
         serializer = BookAppointmentSerializer(data=request.data)
         if not serializer.is_valid():
@@ -60,7 +66,7 @@ class BookAppointmentView(APIView):
         start_time = data['start_time']
         end_time = data['end_time']
 
-        # validate the requested slot is actually available
+        # Check if the requested slot is still available
         available_slots = generate_slots(doctor, date)
         requested = start_time.strftime('%H:%M')
         if not any(slot['start_time'] == requested for slot in available_slots):
@@ -70,12 +76,14 @@ class BookAppointmentView(APIView):
             )
 
         try:
+            # Lock rows and handle booking safely to avoid conflicts
             with transaction.atomic():
                 list(Appointment.objects.select_for_update().filter(
                     doctor=doctor,
                     date=date
                 ))
 
+                # Check for overlapping appointments
                 overlapping = Appointment.objects.filter(
                     doctor=doctor,
                     date=date
@@ -89,6 +97,7 @@ class BookAppointmentView(APIView):
                         status=status.HTTP_409_CONFLICT
                     )
 
+                # Create the appointment
                 appointment = Appointment.objects.create(
                     doctor=doctor,
                     customer=request.user,
@@ -98,6 +107,7 @@ class BookAppointmentView(APIView):
                 )
 
         except IntegrityError:
+            # Handle case where slot was booked at the same time by another request
             return Response(
                 {'detail': 'This slot has just been booked. Please choose another.'},
                 status=status.HTTP_409_CONFLICT
@@ -109,6 +119,7 @@ class BookAppointmentView(APIView):
 class CustomerAppointmentListView(APIView):
     permission_classes = [IsCustomer]
 
+    # Get all appointments booked by the logged-in customer
     def get(self, request):
         appointments = Appointment.objects.filter(
             customer=request.user
@@ -120,6 +131,7 @@ class CustomerAppointmentListView(APIView):
 class DoctorAppointmentListView(APIView):
     permission_classes = [IsDoctor]
 
+    # Get all appointments assigned to the logged-in doctor
     def get(self, request):
         appointments = Appointment.objects.filter(
             doctor=request.user.doctor_profile

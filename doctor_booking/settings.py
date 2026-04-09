@@ -60,7 +60,7 @@ ROOT_URLCONF = 'doctor_booking.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],
+        'DIRS': [BASE_DIR / 'templates'], # Path to global templates folder (used for dashboard)
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -122,12 +122,14 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
-AUTH_USER_MODEL = 'accounts.User'
+AUTH_USER_MODEL = 'accounts.User'  # Use custom user model
 
 REST_FRAMEWORK = {
+    # Use JWT authentication for all API requests
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+    # Require authentication by default
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
@@ -136,8 +138,10 @@ REST_FRAMEWORK = {
 from datetime import timedelta
 
 SIMPLE_JWT = {
+    # Token expiration settings
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
 }
 
+# Allow requests from all origins (for development)
 CORS_ALLOW_ALL_ORIGINS = True

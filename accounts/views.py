@@ -6,6 +6,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from .serializers import RegisterSerializer, LoginSerializer, UserSerializer
 
 
+# Generate JWT access and refresh tokens for user
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
     return {
@@ -17,43 +18,59 @@ def get_tokens_for_user(user):
 class RegisterView(APIView):
     permission_classes = [AllowAny]
 
+    # Register new user (customer)
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
+
+            # Generate tokens after successful registration
             tokens = get_tokens_for_user(user)
+
             return Response({
                 'user': UserSerializer(user).data,
                 'tokens': tokens
             }, status=status.HTTP_201_CREATED)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class LoginView(APIView):
     permission_classes = [AllowAny]
 
+    # Authenticate user and return JWT tokens
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         if serializer.is_valid():
+
+            # Get authenticated user from serializer
             user = serializer.data.get('user') or serializer.validated_data['user']
+
             tokens = get_tokens_for_user(user)
+
             return Response({
                 'user': UserSerializer(user).data,
                 'tokens': tokens
             }, status=status.HTTP_200_OK)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
 
+    # Logout user by blacklisting refresh token
     def post(self, request):
         try:
             refresh_token = request.data.get('refresh')
+
             if not refresh_token:
                 return Response({'detail': 'Refresh token is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
             token = RefreshToken(refresh_token)
             token.blacklist()
+
             return Response({'detail': 'Logged out successfully.'}, status=status.HTTP_200_OK)
+
         except Exception:
             return Response({'detail': 'Invalid token.'}, status=status.HTTP_400_BAD_REQUEST)
