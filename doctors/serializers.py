@@ -79,6 +79,15 @@ class LeaveRequestSerializer(serializers.ModelSerializer):
         fields = ['id', 'doctor_name', 'date', 'reason', 'status', 'admin_remark', 'created_at']
         read_only_fields = ['status', 'admin_remark', 'created_at']
 
+    def validate(self, data):
+        doctor = self.context['request'].user.doctor_profile
+        date = data['date']
+
+        if LeaveRequest.objects.filter(doctor=doctor, date=date).exists():
+            raise serializers.ValidationError("You have already requested leave for this date.")
+
+        return data
+
 
 class LeaveStatusUpdateSerializer(serializers.ModelSerializer):
     class Meta:
